@@ -35,10 +35,14 @@ const client = new MongoClient(uri, {
 let userCollection
 
 async function connectToMongo() {
-    await client.connect()
-    const db = client.db("crud")
-    userCollection = db.collection("chat")
-    console.log("✅ MongoDB Atlas connected!");
+    try {
+        await client.connect()
+        const db = client.db("crud")
+        userCollection = db.collection("chat")
+        console.log("✅ MongoDB Atlas connected!");
+    } catch (err) {
+        console.log("Error", err);
+    }
 }
 
 connectToMongo()
@@ -54,9 +58,13 @@ io.on("connection", (socket) => {
 // CRUD --
 
 app.post("/users", async (req, res) => {
-    const result = userCollection.insertOne(req.body)
-    io.emit("user-updated")
-    res.status(201).json({ insertedId: result.insertedId })
+    try {
+        const result = userCollection.insertOne(req.body)
+        io.emit("user-updated")
+        res.status(201).json({ insertedId: result.insertedId })
+    } catch (err) {
+        console.log("Error:", err)
+    }
 })
 
 app.get("/users", async (req, res) => {
@@ -72,29 +80,37 @@ app.get("/users", async (req, res) => {
 })
 
 app.post("/users/:id", async (req, res) => {
-    const userId = req.params.id
-    const updatedData = req.body
+    try {
+        const userId = req.params.id
+        const updatedData = req.body
 
-    const result = await userCollection.updatedOne(
-        { _id: new ObjectId(userId) },
-        { $set: updatedData }
-    )
+        const result = await userCollection.updateOne(
+            { _id: new ObjectId(userId) },
+            { $set: updatedData }
+        )
 
-    if (result.modified === 0) {
-        return res.status(404).json({ error: "Account not found or unchanged" })
+        if (result.modified === 0) {
+            return res.status(404).json({ error: "Account not found or unchanged" })
+        }
+    } catch (err) {
+        console.log("Error", err);
     }
 })
 
 app.delete("/users/:id", async (req, res) => {
-    const userId = req.params.id
-    const deleting = await userCollection.deleteOne({ _id: new ObjectId(userId) })
+    try {
+        const userId = req.params.id
+        const deleting = await userCollection.deleteOne({ _id: new ObjectId(userId) })
 
-    if (deleting.deleteCount === 0) {
-        res.status(404).json({ error: "Account not found" })
+        if (deleting.deletedCount === 0) {
+            res.status(404).json({ error: "Account not found" })
+        }
+
+        io.emit("user-updated")
+        res.json({ message: "Account successfully deleted" })
+    } catch (err) {
+        console.log("Error", err);
     }
-
-    io.emit("user-updated")
-    res.json({ message: "Account successfully deleted" })
 })
 
 // EXTRA --
