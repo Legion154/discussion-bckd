@@ -50,7 +50,7 @@ connectToMongo()
 io.on("connection", (socket) => {
     console.log("New client connected")
 
-    socket.on("diconnect", () => {
+    socket.on("disconnect", () => {
         console.log("Client disconnected");
     })
 })
@@ -59,11 +59,12 @@ io.on("connection", (socket) => {
 
 app.post("/users", async (req, res) => {
     try {
-        const result = userCollection.insertOne(req.body)
+        const result = await userCollection.insertOne(req.body)
         io.emit("user-updated")
         res.status(201).json({ insertedId: result.insertedId })
     } catch (err) {
         console.log("Error:", err)
+        res.status(500).json({ error: "Server error" });
     }
 })
 
@@ -76,10 +77,11 @@ app.get("/users", async (req, res) => {
         res.json(users)
     } catch (err) {
         console.log("Error", err);
+        res.status(500).json({ error: "Server error" });
     }
 })
 
-app.post("/users/:id", async (req, res) => {
+app.put("/users/:id", async (req, res) => {
     try {
         const userId = req.params.id
         const updatedData = req.body
@@ -89,11 +91,15 @@ app.post("/users/:id", async (req, res) => {
             { $set: updatedData }
         )
 
-        if (result.modified === 0) {
+        if (result.modifiedCount === 0) {
             return res.status(404).json({ error: "Account not found or unchanged" })
         }
+
+        io.emit("user-updated")
+        res.json({ message: "Account successfully updated" })
     } catch (err) {
         console.log("Error", err);
+        res.status(500).json({ error: "Server error" });
     }
 })
 
@@ -103,13 +109,14 @@ app.delete("/users/:id", async (req, res) => {
         const deleting = await userCollection.deleteOne({ _id: new ObjectId(userId) })
 
         if (deleting.deletedCount === 0) {
-            res.status(404).json({ error: "Account not found" })
+            return res.status(404).json({ error: "Account not found" })
         }
 
         io.emit("user-updated")
         res.json({ message: "Account successfully deleted" })
     } catch (err) {
         console.log("Error", err);
+        res.status(500).json({ error: "Server error" });
     }
 })
 
@@ -120,4 +127,4 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: "Internal Server Error" })
 })
 
-app.listen(PORT)
+server.listen(PORT)
