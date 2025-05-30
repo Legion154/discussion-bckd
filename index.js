@@ -9,121 +9,122 @@ const server = http.createServer(app)
 const io = new Server(server, {
     cors: {
         origin: ["https://discussion-alpha.vercel.app", "http://localhost:5173"],
-        methods: ["GET", "POST", "PUT", "DELETE"]
+        methods: ["POST", "GET", "PUT", "DELETE"]
     }
 })
 
-const PORT = process.env.PORT || 3000
+const PORT = 3000
 
 app.use(express.json())
 app.use(cors({
     origin: ["https://discussion-alpha.vercel.app", "http://localhost:5173"]
 }))
 
-// ✅ MongoDB URI
-const uri = "mongodb+srv://knightninja70:atlas1515@messanger.m2srcq3.mongodb.net/messanger?retryWrites=true&w=majority&appName=messanger"
+const uri = "mongodb+srv://knightninja70:atlas1515@messanger.cg5iyvy.mongodb.net/Messanger?retryWrites=true&w=majority&appName=Messanger"
 
-// ✅ MongoClient sozlamalari
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true
-    }
+    },
+    ssl: true,
+    tlsAllowInvalidCertificates: true
 })
 
 let userCollection
 
-// ✅ MongoDB ulanadi va `chat` kolleksiyasini oladi
 async function connectToMongo() {
     try {
         await client.connect()
-        const db = client.db("crud") // sizda `crud` db ichida `chat` bor
+        const db = client.db("crud")
         userCollection = db.collection("chat")
-        console.log("✅ MongoDB Atlas connected!")
+        console.log("✅ MongoDB Atlas connected!");
     } catch (err) {
-        console.error("❌ MongoDB connection error:", err)
+        console.log("Error", err);
     }
 }
 
 connectToMongo()
 
-// ✅ SOCKET.IO ishlayapti
 io.on("connection", (socket) => {
-    console.log("🔌 New client connected")
+    console.log("New client connected")
 
     socket.on("disconnect", () => {
-        console.log("❌ Client disconnected")
+        console.log("Client disconnected");
     })
 })
 
-// ✅ CREATE user
+// CRUD --
+
 app.post("/users", async (req, res) => {
     try {
         const result = await userCollection.insertOne(req.body)
         io.emit("user-updated")
         res.status(201).json({ insertedId: result.insertedId })
     } catch (err) {
-        console.error("POST /users error:", err)
-        res.status(500).json({ error: "Internal Server Error" })
+        console.log("Error:", err)
+        res.status(500).json({ error: "Server error" });
     }
 })
 
-// ✅ READ users
 app.get("/users", async (req, res) => {
     try {
-        const users = await userCollection.find().toArray()
-        res.json(users)
+        if (!userCollection) {
+            return res.status(500).json({ error: "MongoDB not connected" });
+        }
+        const users = await userCollection.find().toArray();
+        res.json(users);
     } catch (err) {
-        console.error("GET /users error:", err)
-        res.status(500).json({ error: "Internal Server Error" })
+        console.error("❌ /users error:", err);
+        res.status(500).json({ error: "Internal Server Error" });
     }
-})
+});
 
-// ✅ UPDATE user
 app.put("/users/:id", async (req, res) => {
     try {
+        const userId = req.params.id
+        const updatedData = req.body
+
         const result = await userCollection.updateOne(
-            { _id: new ObjectId(req.params.id) },
-            { $set: req.body }
+            { _id: new ObjectId(userId) },
+            { $set: updatedData }
         )
 
         if (result.modifiedCount === 0) {
-            return res.status(404).json({ error: "User not found or unchanged" })
+            return res.status(404).json({ error: "Account not found or unchanged" })
         }
 
         io.emit("user-updated")
-        res.json({ message: "User updated successfully" })
+        res.json({ message: "Account successfully updated" })
     } catch (err) {
-        console.error("PUT /users/:id error:", err)
-        res.status(500).json({ error: "Internal Server Error" })
+        console.log("Error", err);
+        res.status(500).json({ error: "Server error" });
     }
 })
 
-// ✅ DELETE user
 app.delete("/users/:id", async (req, res) => {
     try {
-        const result = await userCollection.deleteOne({ _id: new ObjectId(req.params.id) })
+        const userId = req.params.id
+        const deleting = await userCollection.deleteOne({ _id: new ObjectId(userId) })
 
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ error: "User not found" })
+        if (deleting.deletedCount === 0) {
+            return res.status(404).json({ error: "Account not found" })
         }
 
         io.emit("user-updated")
-        res.json({ message: "User deleted successfully" })
+        res.json({ message: "Account successfully deleted" })
     } catch (err) {
-        console.error("DELETE /users/:id error:", err)
-        res.status(500).json({ error: "Internal Server Error" })
+        console.log("Error", err);
+        res.status(500).json({ error: "Server error" });
     }
 })
 
-// ✅ Fallback error handler
+// EXTRA --
+
 app.use((err, req, res, next) => {
-    console.error("Unhandled error:", err)
+    console.error("Global error:", err);
     res.status(500).json({ error: "Internal Server Error" })
 })
 
-// ✅ SERVER listener
-server.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`)
-})
+server.listen(PORT)
