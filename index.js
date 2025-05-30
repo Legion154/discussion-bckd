@@ -20,7 +20,7 @@ app.use(cors({
     origin: ["https://discussion-alpha.vercel.app", "http://localhost:5173"]
 }))
 
-const uri = "mongodb+srv://knightninja70:atlas1515@messanger.m2srcq3.mongodb.net/Messanger?retryWrites=true&w=majority&appName=messanger"
+const uri = "mongodb+srv://knightninja70:atlas1515@messanger.m2srcq3.mongodb.net/messanger?retryWrites=true&w=majority&appName=messanger"
 
 const client = new MongoClient(uri, {
     serverApi: {
