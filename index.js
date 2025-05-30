@@ -8,7 +8,7 @@ const app = express()
 const server = http.createServer(app)
 const io = new Server(server, {
     cors: {
-        origin: ["https://discussion-bckd.up.railway.app", "http://localhost:5173"],
+        origin: ["https://discussion-alpha.vercel.app", "http://localhost:5173"],
         methods: ["POST", "GET", "PUT", "DELETE"]
     }
 })
@@ -17,10 +17,10 @@ const PORT = 3000
 
 app.use(express.json())
 app.use(cors({
-    origin: ["https://discussion-bckd.up.railway.app", "http://localhost:5173"]
+    origin: ["https://discussion-alpha.vercel.app", "http://localhost:5173"]
 }))
 
-const uri = "mongodb+srv://knightninja70:atlas1515@messanger.m2srcq3.mongodb.net/Messanger?retryWrites=true&w=majority&appName=messanger"
+const uri = "mongodb+srv://knightninja70:atlas1515@messanger.cg5iyvy.mongodb.net/Messages?retryWrites=true&w=majority&appName=Messanger"
 
 const client = new MongoClient(uri, {
     serverApi: {
