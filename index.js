@@ -37,7 +37,7 @@ let userCollection
 async function connectToMongo() {
     try {
         await client.connect()
-        const db = client.db("messanger")
+        const db = client.db("crud")
         userCollection = db.collection("chat")
         console.log("✅ MongoDB Atlas connected!");
     } catch (err) {
